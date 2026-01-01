@@ -1,8 +1,8 @@
 // 1) Paste your deployed Apps Script web app URL (ends with /exec)
-const SCRIPT_URL = "PASTE_YOUR_WEB_APP_URL_HERE";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxIWbyc-Dwr6sGSWF-Bd5FT3v2aTGmLeUM8uWdoU9FyWCWMhwCaYjLWmbaP6s_7Rimuyw/exec";
 
 // 2) Must match API_TOKEN in Code.gs
-const TOKEN = "PASTE_THE_SAME_LONG_RANDOM_STRING_HERE";
+const TOKEN = "7635460372";
 
 const grid = document.getElementById("grid");
 const meta = document.getElementById("meta");
