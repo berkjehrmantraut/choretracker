@@ -1,39 +1,338 @@
 <!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Chores</title>
-  <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 24px; }
-    h1 { margin: 0 0 12px 0; }
-    .meta { color: #555; margin-bottom: 18px; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
-    button.chore {
-      border: 0; border-radius: 14px; padding: 16px 14px; cursor: pointer;
-      font-size: 16px; font-weight: 650; color: white;
-      display: flex; flex-direction: column; align-items: flex-start; gap: 6px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-    }
-    button.chore:disabled { opacity: 0.6; cursor: not-allowed; }
-    .line2 { font-weight: 500; opacity: 0.95; }
-    .small { font-size: 13px; font-weight: 500; opacity: 0.9; }
-    .row { display:flex; gap:8px; align-items:center; margin-bottom: 14px; }
-    .row button { padding: 8px 10px; border-radius: 10px; border: 1px solid #ddd; background: #fff; cursor: pointer; }
-    .error { color: #b00020; margin-top: 12px; white-space: pre-wrap; }
-  </style>
-</head>
-<body>
-  <h1>House Chores</h1>
-  <div class="meta" id="meta">Loading…</div>
+<html>
+  <head>
+    <base target="_top" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      :root{
+        /* Tweak these if you want even bigger/smaller */
+        --base-font: 40px;
+        --small-font: 20px;
+        --radius: 16px;
+        --pad: 14px;
+      }
 
-  <div class="row">
-    <button id="refreshBtn">Refresh</button>
-  </div>
+      body{
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+        margin: 0;
+        font-size: var(--base-font);
+        background: #fafafa;
+      }
 
-  <div class="grid" id="grid"></div>
-  <div class="error" id="error"></div>
+      header{
+        padding: 16px 16px 10px;
+        background: #fff;
+        border-bottom: 1px solid #e5e5e5;
+      }
 
-  <script src="app.js"></script>
-</body>
+      h1{
+        font-size: 22px;
+        margin: 0 0 6px;
+        line-height: 1.15;
+      }
+
+      .hint{
+        color:#666;
+        font-size: var(--small-font);
+      }
+
+      /* Sticky control bar for mobile */
+      .controls{
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: #fff;
+        border-bottom: 1px solid #e5e5e5;
+        padding: 12px 12px 14px;
+      }
+
+      .controls-grid{
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+
+      input, select, button{
+        width: 100%;
+        font-size: 18px;
+        padding: 14px 14px;
+        border-radius: var(--radius);
+        border: 1px solid #cfcfcf;
+        background: #fff;
+        box-sizing: border-box;
+      }
+
+      button{
+        font-weight: 700;
+        border-color: #bbb;
+      }
+
+      button:disabled{
+        opacity: 0.55;
+      }
+
+      main{
+        padding: 14px 12px 80px;
+      }
+
+      .row{
+        padding: var(--pad);
+        border: 1px solid #ddd;
+        border-radius: calc(var(--radius) + 2px);
+        background: #fff;
+        margin-bottom: 12px;
+      }
+
+      .row.due{
+        border-color: #000;
+        background: rgba(255, 215, 0, 0.18);
+      }
+
+      .top{
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 12px;
+        align-items: start;
+      }
+
+      .chore{
+        font-weight: 800;
+        font-size: 20px;
+        line-height: 1.15;
+      }
+
+      .resp{
+        margin-top: 6px;
+        color: #666;
+        font-size: var(--small-font);
+      }
+
+      .badge{
+        display:inline-block;
+        padding: 6px 10px;
+        border-radius: 999px;
+        border: 1px solid #bbb;
+        font-size: 13px;
+        font-weight: 800;
+        vertical-align: middle;
+        margin-left: 10px;
+        letter-spacing: 0.02em;
+      }
+      .badge.due{ border-color:#000; }
+
+      .meta{
+        margin-top: 10px;
+        display:flex;
+        gap: 14px;
+        flex-wrap: wrap;
+        font-size: 16px;
+        color:#333;
+      }
+
+      .meta span strong{
+        font-weight: 800;
+      }
+
+      /* Big primary action button */
+      .done-btn{
+        width: 100%;
+        padding: 14px 16px;
+        border-radius: calc(var(--radius) + 6px);
+        border: 1px solid #222;
+        background: #fff;
+        font-size: 18px;
+        font-weight: 800;
+      }
+
+      .toast{
+        position: fixed;
+        left: 50%;
+        transform: translateX(-50%);
+        bottom: 18px;
+        background: #111;
+        color: #fff;
+        padding: 12px 14px;
+        border-radius: 999px;
+        font-size: 14px;
+        display:none;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.18);
+      }
+
+      /* Slightly nicer on wider screens too */
+      @media (min-width: 700px){
+        body{ max-width: 680px; margin: 0 auto; }
+        .controls-grid{
+          grid-template-columns: 2fr 1fr 1fr 1fr;
+          align-items: center;
+        }
+        .top{
+          grid-template-columns: 1fr 160px;
+          align-items: center;
+        }
+        .done-btn{
+          width: 160px;
+          justify-self: end;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <header>
+      <h1>Ehrmantraut Chores</h1>
+      <div class="hint" id="status">Loading…</div>
+    </header>
+
+    <div class="controls">
+      <div class="controls-grid">
+        <input id="q" placeholder="Search chores…" oninput="applyFilters()" />
+        <select id="who" onchange="applyFilters()">
+          <option value="">All people</option>
+        </select>
+        <select id="due" onchange="applyFilters()">
+          <option value="">All</option>
+          <option value="due">Due only</option>
+          <option value="notdue">Not due</option>
+        </select>
+        <button onclick="load()">Refresh</button>
+      </div>
+    </div>
+
+    <main>
+      <div id="list">Loading…</div>
+    </main>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+      let allChores = [];
+
+      function setStatus(msg) {
+        document.getElementById("status").textContent = msg;
+      }
+
+      function toast(msg) {
+        const el = document.getElementById("toast");
+        el.textContent = msg;
+        el.style.display = "block";
+        clearTimeout(window.__toastTimer);
+        window.__toastTimer = setTimeout(() => el.style.display = "none", 1600);
+      }
+
+      function escapeHtml(s) {
+        return String(s ?? "").replace(/[&<>"']/g, m => ({
+          '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'
+        }[m]));
+      }
+
+      function populateWhoFilter(chores) {
+        const select = document.getElementById("who");
+        const current = select.value;
+        const people = Array.from(new Set(chores.map(c => c.responsible).filter(Boolean))).sort();
+
+        select.innerHTML =
+          `<option value="">All people</option>` +
+          people.map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join("");
+
+        if (people.includes(current)) select.value = current;
+      }
+
+      function render(chores) {
+        const el = document.getElementById("list");
+        el.innerHTML = "";
+
+        if (!chores.length) {
+          el.textContent = "No chores match your filters.";
+          return;
+        }
+
+        chores.forEach(c => {
+          const div = document.createElement("div");
+          div.className = "row" + (c.isDue ? " due" : "");
+
+          const badge = c.isDue
+            ? `<span class="badge due">DUE</span>`
+            : `<span class="badge">OK</span>`;
+
+          div.innerHTML = `
+            <div class="top">
+              <div>
+                <div class="chore">${escapeHtml(c.chore)} ${badge}</div>
+                <div class="resp">${escapeHtml(c.responsible || "")}</div>
+                <div class="meta">
+                  <span>CounterDays: <strong>${escapeHtml(c.counterDays ?? "")}</strong></span>
+                  <span>TargetDays: <strong>${escapeHtml(c.targetDays ?? "")}</strong></span>
+                </div>
+              </div>
+              <button class="done-btn" id="btn-${c.rowNumber}" onclick="done(${c.rowNumber})">Done</button>
+            </div>
+          `;
+
+          el.appendChild(div);
+        });
+      }
+
+      function applyFilters() {
+        const q = document.getElementById("q").value.trim().toLowerCase();
+        const who = document.getElementById("who").value;
+        const dueFilter = document.getElementById("due").value; // "", "due", "notdue"
+
+        const filtered = allChores.filter(c => {
+          const matchesQ = !q || String(c.chore).toLowerCase().includes(q);
+          const matchesWho = !who || c.responsible === who;
+
+          const matchesDue =
+            !dueFilter ||
+            (dueFilter === "due" && c.isDue) ||
+            (dueFilter === "notdue" && !c.isDue);
+
+          return matchesQ && matchesWho && matchesDue;
+        });
+
+        // Due first, then most overdue
+        filtered.sort((a, b) => {
+          if (a.isDue !== b.isDue) return a.isDue ? -1 : 1;
+          return (b.counterDays ?? -1) - (a.counterDays ?? -1);
+        });
+
+        render(filtered);
+        setStatus(`${filtered.length} shown`);
+      }
+
+      function load() {
+        setStatus("Loading…");
+        google.script.run
+          .withSuccessHandler((chores) => {
+            allChores = chores;
+            populateWhoFilter(allChores);
+            applyFilters();
+          })
+          .withFailureHandler((err) => {
+            document.getElementById("list").textContent = "Error loading chores.";
+            setStatus("Error");
+            console.error(err);
+          })
+          .getChores();
+      }
+
+      function done(rowNumber) {
+        const btn = document.getElementById(`btn-${rowNumber}`);
+        if (btn) btn.disabled = true;
+
+        google.script.run
+          .withSuccessHandler(() => {
+            toast("Marked done ✔");
+            load();
+          })
+          .withFailureHandler((err) => {
+            toast("Error");
+            if (btn) btn.disabled = false;
+            console.error(err);
+          })
+          .markDone(rowNumber);
+      }
+
+      load();
+    </script>
+  </body>
 </html>
